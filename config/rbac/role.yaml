@@ -1,0 +1,112 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayclients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayclients/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayclients/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rays
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rays/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rays/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayusers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayusers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayusers/status
+  verbs:
+  - get
+  - patch
+  - update

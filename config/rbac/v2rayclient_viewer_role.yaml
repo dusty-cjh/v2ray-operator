@@ -1,0 +1,27 @@
+# permissions for end users to view v2rayclients.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: v2rayclient-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: v2ray-operator
+    app.kubernetes.io/part-of: v2ray-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: v2rayclient-viewer-role
+rules:
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayclients
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vpn.hdcjh.xyz
+  resources:
+  - v2rayclients/status
+  verbs:
+  - get

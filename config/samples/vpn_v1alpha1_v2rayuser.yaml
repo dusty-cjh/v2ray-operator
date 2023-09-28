@@ -1,0 +1,14 @@
+apiVersion: vpn.hdcjh.xyz/v1alpha1
+kind: V2rayUser
+metadata:
+  name: v2rayuser-sample
+spec:
+  # TODO(user): edit the following value to ensure the number
+  # of Pods/Instances your Operand must have on cluster
+  user:
+    id: "2f88007a-eb8c-b665-3f83-4448545b027f"
+    email: test1it@qq.com
+  protocol: "ws+vless"
+  nodeList:
+    us:
+      size: 1

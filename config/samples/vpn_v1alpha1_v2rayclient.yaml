@@ -1,0 +1,12 @@
+apiVersion: vpn.hdcjh.xyz/v1alpha1
+kind: V2rayClient
+metadata:
+  labels:
+    app.kubernetes.io/name: v2rayclient
+    app.kubernetes.io/instance: v2rayclient-sample
+    app.kubernetes.io/part-of: v2ray-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: v2ray-operator
+  name: v2rayclient-sample
+spec:
+  # TODO(user): Add fields here

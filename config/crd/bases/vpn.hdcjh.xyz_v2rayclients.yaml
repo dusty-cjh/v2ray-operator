@@ -1,0 +1,437 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: v2rayclients.vpn.hdcjh.xyz
+spec:
+  group: vpn.hdcjh.xyz
+  names:
+    kind: V2rayClient
+    listKind: V2rayClientList
+    plural: v2rayclients
+    singular: v2rayclient
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: V2rayClient is the Schema for the v2rayclients API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: V2rayClientSpec defines the desired state of V2rayClient
+            properties:
+              affinity:
+                properties:
+                  regions:
+                    items:
+                      properties:
+                        nums:
+                          default: 1
+                          description: how many v2ray instances in this region
+                          maximum: 5
+                          minimum: 1
+                          type: integer
+                        region:
+                          default: us
+                          description: which region the v2ray instance should belongs
+                            to
+                          enum:
+                          - us
+                          - sg
+                          - hk
+                          - jp
+                          - tw
+                          - au
+                          - uk
+                          - de
+                          - fr
+                          - ca
+                          - in
+                          - th
+                          - vn
+                          - my
+                          - ph
+                          - id
+                          - br
+                          - mx
+                          type: string
+                        virginIp:
+                          default: false
+                          description: whether the node ip only owned by this v2ray
+                            client
+                          type: boolean
+                      type: object
+                    type: array
+                type: object
+              v2ray:
+                properties:
+                  api:
+                    properties:
+                      services:
+                        items:
+                          type: string
+                        type: array
+                      tag:
+                        type: string
+                    type: object
+                  inbounds:
+                    items:
+                      properties:
+                        listen:
+                          default: 127.0.0.1
+                          description: kubebuilder:validation:Pattern="^(\d{1,3}\.){3}\d{1,3}$"
+                          type: string
+                        port:
+                          description: 'The following markers will use OpenAPI v3
+                            schema to validate the value More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+                            default with random value'
+                          maximum: 65535
+                          minimum: 1025
+                          type: integer
+                        protocol:
+                          enum:
+                          - vless
+                          - vmess
+                          - trojan
+                          - dokodemo-door
+                          type: string
+                        settings:
+                          properties:
+                            address:
+                              type: string
+                            clients:
+                              items:
+                                properties:
+                                  alterId:
+                                    default: 0
+                                    maximum: 65535
+                                    minimum: 0
+                                    type: integer
+                                  email:
+                                    type: string
+                                  id:
+                                    type: string
+                                  level:
+                                    type: integer
+                                type: object
+                              type: array
+                            decryption:
+                              default: none
+                              description: must assign "none"
+                              type: string
+                            fallbacks:
+                              items:
+                                properties:
+                                  dest:
+                                    type: string
+                                  path:
+                                    type: string
+                                type: object
+                              type: array
+                          type: object
+                        streamSettings:
+                          properties:
+                            network:
+                              default: ws
+                              type: string
+                            security:
+                              default: none
+                              type: string
+                            sockopt:
+                              properties:
+                                mark:
+                                  type: integer
+                                tcpFastOpen:
+                                  type: boolean
+                                tcpFastOpenQueueLength:
+                                  default: 4096
+                                  type: integer
+                                tcpKeepAliveInterval:
+                                  type: integer
+                                tproxy:
+                                  default: "off"
+                                  type: string
+                              type: object
+                            wsSettings:
+                              properties:
+                                acceptProxyProtocol:
+                                  default: false
+                                  type: boolean
+                                earlyDataHeaderName:
+                                  type: string
+                                maxEarlyData:
+                                  default: 1024
+                                  type: integer
+                                path:
+                                  type: string
+                                useBrowserForwarding:
+                                  default: false
+                                  type: boolean
+                              type: object
+                          type: object
+                        tag:
+                          type: string
+                      type: object
+                    type: array
+                  log:
+                    properties:
+                      access:
+                        type: string
+                      error:
+                        type: string
+                      loglevel:
+                        default: warning
+                        description: only in debug / info / warning / error / none
+                        enum:
+                        - debug
+                        - info
+                        - warning
+                        - error
+                        - none
+                        type: string
+                    type: object
+                  outbounds:
+                    items:
+                      properties:
+                        protocol:
+                          default: freedom
+                          enum:
+                          - blackhole
+                          - freedom
+                          - dns
+                          - http
+                          - tls
+                          - vless
+                          - shadowsocks
+                          - vmess
+                          - socks
+                          - http2
+                          - loopback
+                          type: string
+                        settings:
+                          properties:
+                            domainStrategy:
+                              description: freedom
+                              type: string
+                            inboundTag:
+                              description: loopback
+                              type: string
+                            redirect:
+                              type: string
+                            userLevel:
+                              type: integer
+                            vnext:
+                              description: vless / vmess
+                              items:
+                                properties:
+                                  address:
+                                    type: string
+                                  port:
+                                    type: integer
+                                  users:
+                                    items:
+                                      properties:
+                                        alterId:
+                                          type: integer
+                                        encryption:
+                                          type: string
+                                        id:
+                                          type: string
+                                        level:
+                                          type: integer
+                                        security:
+                                          type: string
+                                      type: object
+                                    type: array
+                                type: object
+                              type: array
+                          type: object
+                        tag:
+                          type: string
+                      type: object
+                    type: array
+                  policy:
+                    properties:
+                      levels:
+                        additionalProperties:
+                          properties:
+                            bufferSize:
+                              type: integer
+                            connIdle:
+                              type: integer
+                            downlinkOnly:
+                              type: integer
+                            handshake:
+                              type: integer
+                            statsUserDownlink:
+                              type: boolean
+                            statsUserUplink:
+                              type: boolean
+                            uplinkOnly:
+                              type: integer
+                          type: object
+                        type: object
+                      system:
+                        properties:
+                          statsInboundDownlink:
+                            type: boolean
+                          statsInboundUplink:
+                            type: boolean
+                          statsOutboundDownlink:
+                            type: boolean
+                          statsOutboundUplink:
+                            type: boolean
+                        type: object
+                    type: object
+                  routing:
+                    properties:
+                      settings:
+                        properties:
+                          rules:
+                            items:
+                              properties:
+                                inboundTag:
+                                  items:
+                                    type: string
+                                  type: array
+                                outboundTag:
+                                  type: string
+                                type:
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
+                      strategy:
+                        type: string
+                    type: object
+                  stats:
+                    type: object
+                  transport:
+                    properties:
+                      sockopt:
+                        properties:
+                          mark:
+                            type: integer
+                          tcpFastOpen:
+                            type: boolean
+                          tcpFastOpenQueueLength:
+                            type: integer
+                          tcpKeepAliveInterval:
+                            type: integer
+                          tproxy:
+                            type: string
+                        type: object
+                      tlsSettings:
+                        type: object
+                      wsSettings:
+                        properties:
+                          acceptProxyProtocol:
+                            type: boolean
+                          earlyDataHeaderName:
+                            type: string
+                          maxEarlyData:
+                            type: integer
+                          path:
+                            type: string
+                          useBrowserForwarding:
+                            type: boolean
+                        type: object
+                    type: object
+                type: object
+            required:
+            - v2ray
+            type: object
+          status:
+            description: V2rayClientStatus defines the observed state of V2rayClient
+            properties:
+              conditions:
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    \n type FooStatus struct{ // Represents the observations of a
+                    foo's current state. // Known .status.conditions.type are: \"Available\",
+                    \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                    // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                    `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                    protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                  properties:
+                    lastTransitionTime:
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              subscriptionLink:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

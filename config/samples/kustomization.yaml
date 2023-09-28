@@ -1,0 +1,6 @@
+## Append samples of your project ##
+resources:
+- vpn_v1alpha1_v2ray.yaml
+- vpn_v1alpha1_v2rayclient.yaml
+- vpn_v1alpha1_v2rayuser.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
