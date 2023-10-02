@@ -82,7 +82,11 @@ type V2rayUserSpec struct {
 	// +optional
 	// +kubebuilder:default="ws+vmess"
 	// +kubebuilder:validation:Enum="ws+vmess";"ws+vless"
-	Protocol string `json:"protocol,omitempty"`
+	InboundTag string `json:"inboundTag,omitempty"`
+	// +optional
+	// +kubebuilder:default="ws+vmess"
+	// +kubebuilder:validation:Enum="ws+vmess";"ws+vless";"freedom";"blackhole"
+	OutboundTag string `json:"outboundTag,omitempty"`
 }
 
 // V2rayUserStatus defines the observed state of V2rayUser

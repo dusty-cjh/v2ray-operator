@@ -74,7 +74,9 @@ type V2rayUserReconciler struct {
 //+kubebuilder:rbac:groups=vpn.hdcjh.xyz,resources=v2rayusers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=vpn.hdcjh.xyz,resources=v2rayusers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=vpn.hdcjh.xyz,resources=v2rayusers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch;list
+//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
@@ -225,6 +227,7 @@ func (r *V2rayUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		return ctrl.Result{}, nil
 	}
+	log.Info("Elected svc from affinity", "svcList", len(svcList))
 
 	//	add user to v2ray svc list
 	//	TODO: validate and format the v2ray user info
@@ -270,15 +273,15 @@ func (r *V2rayUserReconciler) doFinalizerOperationsForV2rayUser(ctx context.Cont
 
 	var log = log.FromContext(ctx).WithValues("func", "doFinalizerOperationsForV2rayUser")
 	var user = cr.Spec.User
-	var tag = cr.Spec.Protocol
+	var tag = cr.Spec.InboundTag
 	var account *anypb.Any
 	log.Info("start delete v2ray user")
 	switch {
-	case strings.Contains(cr.Spec.Protocol, "vless"):
+	case strings.Contains(cr.Spec.InboundTag, "vless"):
 		account = serial.ToTypedMessage(&vless.Account{
 			Id: user.Id,
 		})
-	case strings.Contains(cr.Spec.Protocol, "vmess"):
+	case strings.Contains(cr.Spec.InboundTag, "vmess"):
 		account = serial.ToTypedMessage(&vmess.Account{
 			Id:      user.Id,
 			AlterId: 0,
@@ -409,6 +412,14 @@ func (r *V2rayUserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+// define min func
+func min(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
+
 func (r *V2rayUserReconciler) electServicesFromAffinity(ctx context.Context, nodeList map[string]*vpnv1alpha1.V2rayNodeList) ([]corev1.Service, error) {
 	var log = log.FromContext(ctx)
 	var ret = make([]corev1.Service, 0, len(nodeList))
@@ -475,13 +486,13 @@ func getV2rayGrpcClientFromSvc(svc *corev1.Service) (*v2fly.V2rayGrpcApi, error)
 }
 
 func (r *V2rayUserReconciler) addUserToV2raySvcList(ctx context.Context, v2rayuser *vpnv1alpha1.V2rayUser, svcList []corev1.Service) (err error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
 	var log = log.FromContext(ctx)
 	var account *anypb.Any
 	var nodeList = make(map[string]*vpnv1alpha1.V2rayNodeList)
-	var v2rayInboundTag = v2rayuser.Spec.Protocol
+	var v2rayInboundTag = v2rayuser.Spec.InboundTag
 	var user = v2rayuser.Spec.User
 	switch {
 	case strings.Contains(v2rayInboundTag, "vless"):

@@ -82,7 +82,18 @@ var _ = Describe("V2rayUser controller", func() {
 						Name:      V2rayUserName,
 						Namespace: namespace.Name,
 					},
-					Spec: vpnv1alpha1.V2rayUserSpec{},
+					Spec: vpnv1alpha1.V2rayUserSpec{
+						User: vpnv1alpha1.V2rayUserInfo{
+							Id:    "2f88007a-eb8c-b665-3f83-4448545b027f",
+							Email: "test1it@qq.com",
+						},
+						InboundTag: "ws+vless",
+						NodeList: map[string]*vpnv1alpha1.V2rayNodeList{
+							"us": {
+								Size: 1,
+							},
+						},
+					},
 				}
 
 				err = k8sClient.Create(ctx, v2rayuser)

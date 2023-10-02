@@ -35,6 +35,12 @@ spec:
           spec:
             description: V2rayUserSpec defines the desired state of V2rayUser
             properties:
+              inboundTag:
+                default: ws+vmess
+                enum:
+                - ws+vmess
+                - ws+vless
+                type: string
               nodeList:
                 additionalProperties:
                   properties:
@@ -71,11 +77,13 @@ spec:
                       type: boolean
                   type: object
                 type: object
-              protocol:
+              outboundTag:
                 default: ws+vmess
                 enum:
                 - ws+vmess
                 - ws+vless
+                - freedom
+                - blackhole
                 type: string
               user:
                 properties:

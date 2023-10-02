@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.21 as builder
+FROM golang:1.20 as builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -14,7 +14,7 @@ RUN go mod download
 # Copy the go source
 COPY cmd/main.go cmd/main.go
 COPY api/ api/
-COPY internal/controller/ internal/controller/
+COPY internal/ internal/
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
@@ -29,5 +29,7 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
+
+ENV ENV=live
 
 ENTRYPOINT ["/manager"]
