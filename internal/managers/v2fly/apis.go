@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	log2 "sigs.k8s.io/controller-runtime/pkg/log"
+	"strings"
 )
 
 type AlterInboundInterface interface {
@@ -172,6 +173,13 @@ func (this *V2rayGrpcApi) AlterInbound(ctx context.Context, tag string, operatio
 	}
 	_, err := cli.AlterInbound(ctx, r)
 	if err != nil {
+		switch x := operation.(type) {
+		case *handlerService.AddUserOperation:
+			substr := fmt.Sprintf("User %s already exists.", x.User.Email)
+			if strings.Contains(err.Error(), substr) {
+				return nil
+			}
+		}
 		log.Error(err, "V2rayGrpcApi.AlterInbound failed to alter inbound")
 		return fmt.Errorf("V2rayGrpcApi.AlterInbound failed to alter inbound: %w", err)
 	}

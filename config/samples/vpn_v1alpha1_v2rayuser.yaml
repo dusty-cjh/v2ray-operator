@@ -5,8 +5,8 @@ metadata:
   namespace: vpn
 spec:
   user:
-    id: "2f88007a-eb8c-b665-3f83-4448545b027f"
-    email: test1it@qq.com
+#    id: "2f88007a-eb8c-b665-3f83-4448545b027f" # let operator generate it
+    email: j903q4jgh43@qq.com
   inboundTag: "ws+vless"
   nodeList:
     us:

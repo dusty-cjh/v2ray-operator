@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: 2930007061/v2ray-operator
-  newTag: 0.0.1
+  newTag: main

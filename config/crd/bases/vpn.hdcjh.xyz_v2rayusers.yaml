@@ -33,7 +33,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: V2rayUserSpec defines the desired state of V2rayUser
+            description: V2rayUserSpec defines the desired state of V2rayUser 1. fill
+              the basic info, e.g, user id / email / level 2. which nodes should be
+              selected 3. which tag should be added to the user
             properties:
               inboundTag:
                 default: ws+vmess

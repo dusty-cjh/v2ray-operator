@@ -27,6 +27,7 @@ type V2rayUserInfo struct {
 	// +kubebuilder:validation:MinLength=36
 	// +kubebuilder:validation:MaxLength=36
 	// +kubebuilder:validation:Pattern="^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+	// +optional
 	//	uuid field, if empty, will be generated automatically
 	Id string `json:"id,omitempty"`
 
@@ -72,6 +73,9 @@ type V2rayNodeList struct {
 }
 
 // V2rayUserSpec defines the desired state of V2rayUser
+//  1. fill the basic info, e.g, user id / email / level
+//  2. which nodes should be selected
+//  3. which tag should be added to the user
 type V2rayUserSpec struct {
 	// +kubebuilder:validation:Required
 	User V2rayUserInfo `json:"user,omitempty"`

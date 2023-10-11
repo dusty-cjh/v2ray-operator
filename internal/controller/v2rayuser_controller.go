@@ -23,6 +23,7 @@ import (
 	"github.com/dusty-cjh/v2ray-operator/internal/constant"
 	"github.com/dusty-cjh/v2ray-operator/internal/managers"
 	"github.com/dusty-cjh/v2ray-operator/internal/managers/v2fly"
+	"github.com/google/uuid"
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/command"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
@@ -112,7 +113,7 @@ func (r *V2rayUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	// Let's just set the status as Unknown when no status are available
+	// init Status to Unknown
 	if v2rayuser.Status.Conditions == nil || len(v2rayuser.Status.Conditions) == 0 {
 		meta.SetStatusCondition(&v2rayuser.Status.Conditions, metav1.Condition{Type: typeAvailableV2rayUser, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
 		if err = r.Status().Update(ctx, v2rayuser); err != nil {
@@ -125,14 +126,74 @@ func (r *V2rayUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// raise the issue "the object has been modified, please apply
 		// your changes to the latest version and try again" which would re-trigger the reconciliation
 		// if we try to update it again in the following operations
-		if err := r.Get(ctx, req.NamespacedName, v2rayuser); err != nil {
+		if err = r.Get(ctx, req.NamespacedName, v2rayuser); err != nil {
 			log.Error(err, "Failed to re-fetch v2rayuser")
 			return ctrl.Result{}, err
 		}
 	}
 
-	// Let's add a finalizer. Then, we can define some operations which should
-	// occurs before the custom resource to be deleted.
+	//	generate uuid if not provided
+	if v2rayuser.Spec.User.Id == "" {
+		v2rayuser.Spec.User.Id = uuid.New().String()
+	}
+	//	update result
+	if err = r.Update(ctx, v2rayuser); err != nil {
+		log.Error(err, "Failed to update v2rayuser")
+		return ctrl.Result{}, err
+	}
+	if err = r.Get(ctx, req.NamespacedName, v2rayuser); err != nil {
+		log.Error(err, "Failed to re-fetch v2rayuser")
+		return ctrl.Result{}, err
+	}
+	log.Info(fmt.Sprintf("V2rayUser %s auto generated uuid: %s", v2rayuser.Spec.User.Email, v2rayuser.Spec.User.Id))
+
+	//	Elect nodes that satisfy the v2ray user affinity
+	svcList, err := r.electServicesFromAffinity(ctx, v2rayuser.Spec.NodeList)
+	if err != nil {
+		log.Error(err, "Failed to elect nodes from affinity")
+		return ctrl.Result{}, err
+	}
+	if len(svcList) == 0 {
+		log.Info("No node elected from affinity")
+
+		//	Update v2ray user status to NoNodeElected
+		meta.SetStatusCondition(&v2rayuser.Status.Conditions, metav1.Condition{Type: typeAvailableV2rayUser,
+			Status: metav1.ConditionFalse, Reason: "NoNodeElected",
+			Message: fmt.Sprintf("No node elected from affinity")})
+		if err := r.Status().Update(ctx, v2rayuser); err != nil {
+			log.Error(err, "Failed to update V2rayUser status")
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
+	}
+	log.Info(fmt.Sprintf("Elected %d svc from affinity for %s", len(svcList), v2rayuser.Spec.User.Id))
+
+	//	add user to v2ray svc list
+	//	TODO: validate and format the v2ray user info
+	err = r.addUserToV2raySvcList(ctx, v2rayuser, svcList)
+	if err != nil {
+		log.Error(err, "Failed to add user to v2ray svc list")
+
+		//	Update v2ray user status to V2raySvcAddFailed
+		meta.SetStatusCondition(&v2rayuser.Status.Conditions, metav1.Condition{Type: typeAvailableV2rayUser,
+			Status: metav1.ConditionFalse, Reason: "V2raySvcAddFailed",
+			Message: fmt.Sprintf("Failed to add user to v2ray svc list: %v", err)})
+		if err := r.Status().Update(ctx, v2rayuser); err != nil {
+			log.Error(err, "Failed to update V2rayUser status")
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
+	} else {
+		r.Recorder.Event(v2rayuser, "Warning", "V2raySvcAdded",
+			fmt.Sprintf("V2ray Svc Grpc call success, %s v2rayuser is being added to the server, namespace %s",
+				v2rayuser.Name,
+				v2rayuser.Namespace))
+	}
+	log.Info("Add user to v2ray svc list success")
+
+	// add finalizer
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers
 	if !controllerutil.ContainsFinalizer(v2rayuser, v2rayuserFinalizer) {
 		log.Info("Adding Finalizer for V2rayUser")
@@ -146,13 +207,14 @@ func (r *V2rayUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 	}
+	log.Info("Finalizer added to the V2rayUser")
 
 	// Check if the V2rayUser instance is marked to be deleted, which is
 	// indicated by the deletion timestamp being set.
 	isV2rayUserMarkedToBeDeleted := v2rayuser.GetDeletionTimestamp() != nil
 	if isV2rayUserMarkedToBeDeleted {
 		if controllerutil.ContainsFinalizer(v2rayuser, v2rayuserFinalizer) {
-			log.Info("Performing Finalizer Operations for V2rayUser before delete CR")
+			log.Info("Performing Finalizer for V2rayUser before delete CR")
 
 			// Let's add here an status "Downgrade" to define that this resource begin its process to be terminated.
 			meta.SetStatusCondition(&v2rayuser.Status.Conditions, metav1.Condition{Type: typeDegradedV2rayUser,
@@ -205,51 +267,6 @@ func (r *V2rayUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 		}
 		return ctrl.Result{}, nil
-	}
-
-	//	Elect nodes that satisfy the v2ray user affinity
-	svcList, err := r.electServicesFromAffinity(ctx, v2rayuser.Spec.NodeList)
-	if err != nil {
-		log.Error(err, "Failed to elect nodes from affinity")
-		return ctrl.Result{}, err
-	}
-	if len(svcList) == 0 {
-		log.Info("No node elected from affinity")
-
-		//	Update v2ray user status to NoNodeElected
-		meta.SetStatusCondition(&v2rayuser.Status.Conditions, metav1.Condition{Type: typeAvailableV2rayUser,
-			Status: metav1.ConditionFalse, Reason: "NoNodeElected",
-			Message: fmt.Sprintf("No node elected from affinity")})
-		if err := r.Status().Update(ctx, v2rayuser); err != nil {
-			log.Error(err, "Failed to update V2rayUser status")
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
-	}
-	log.Info("Elected svc from affinity", "svcList", len(svcList))
-
-	//	add user to v2ray svc list
-	//	TODO: validate and format the v2ray user info
-	err = r.addUserToV2raySvcList(ctx, v2rayuser, svcList)
-	if err != nil {
-		log.Error(err, "Failed to add user to v2ray svc list")
-
-		//	Update v2ray user status to V2raySvcAddFailed
-		meta.SetStatusCondition(&v2rayuser.Status.Conditions, metav1.Condition{Type: typeAvailableV2rayUser,
-			Status: metav1.ConditionFalse, Reason: "V2raySvcAddFailed",
-			Message: fmt.Sprintf("Failed to add user to v2ray svc list: %v", err)})
-		if err := r.Status().Update(ctx, v2rayuser); err != nil {
-			log.Error(err, "Failed to update V2rayUser status")
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
-	} else {
-		r.Recorder.Event(v2rayuser, "Warning", "V2raySvcAdded",
-			fmt.Sprintf("V2ray Svc Grpc call success, %s v2rayuser is being added to the server, namespace %s",
-				v2rayuser.Name,
-				v2rayuser.Namespace))
 	}
 
 	// set available status to true
@@ -425,6 +442,10 @@ func (r *V2rayUserReconciler) electServicesFromAffinity(ctx context.Context, nod
 	var ret = make([]corev1.Service, 0, len(nodeList))
 
 	for region, affinity := range nodeList {
+		if affinity.Size == 0 {
+			affinity.Size = 1
+		}
+
 		//	global
 		region = strings.ToLower(region)
 
@@ -505,8 +526,8 @@ func (r *V2rayUserReconciler) addUserToV2raySvcList(ctx context.Context, v2rayus
 			AlterId: 0,
 		})
 	default:
-		log.Info("AddUserToV2raySvcList: invalid inbound tag")
-		return fmt.Errorf("AddUserToV2raySvcList: unsupported inbound tag")
+		log.Info("AddUserToV2raySvcList: invalid inbound tag", "inboundTag", v2rayInboundTag)
+		return fmt.Errorf("AddUserToV2raySvcList: unsupported inbound tag %s", v2rayInboundTag)
 	}
 	v2rayUser := &protocol.User{
 		Level:   uint32(user.Level),
@@ -557,7 +578,7 @@ func (r *V2rayUserReconciler) addUserToV2raySvcList(ctx context.Context, v2rayus
 		}
 
 		// add user to v2fly client config
-		if err := cli.AlterInbound(
+		if err = cli.AlterInbound(
 			ctx, v2rayInboundTag,
 			&command.AddUserOperation{
 				User: v2rayUser,
